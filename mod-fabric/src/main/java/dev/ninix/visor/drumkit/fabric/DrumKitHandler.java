@@ -7,6 +7,7 @@ import org.vmstudio.visor.api.client.player.VRLocalPlayer;
 import org.vmstudio.visor.api.client.player.pose.PlayerPoseClient;
 import org.vmstudio.visor.api.client.player.pose.PlayerPoseType;
 import org.vmstudio.visor.api.common.HandType;
+import org.vmstudio.visor.api.common.player.VRPose;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -18,18 +19,19 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
 public class DrumKitHandler {
 
-    private Vec3 lastMainHandPos = null;
-    private Vec3 lastOffHandPos = null;
+    private Vec3 lastMainTipPos = null;
+    private Vec3 lastOffTipPos = null;
 
-    private boolean wasMainOnNoteBlock = false;
-    private boolean wasOffOnNoteBlock = false;
+    private boolean wasMainInside = false;
+    private boolean wasOffInside = false;
 
-    private static final double MIN_SPEED_FOR_HIT = 0.1;
-    private static final double COOLDOWN_SECONDS = 0.1;
+    private static final double MIN_SPEED_FOR_HIT = 0.03;
+    private static final double COOLDOWN_SECONDS = 0.07;
 
     private double lastMainHitTime = 0;
     private double lastOffHitTime = 0;
@@ -42,53 +44,64 @@ public class DrumKitHandler {
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
-    private double lastTickTime = 0;
-
     private void onTick(Minecraft mc) {
         if (mc.player == null || mc.level == null || mc.isPaused()) return;
 
         double currentTime = System.currentTimeMillis() / 1000.0;
-        double deltaTime = Math.min(0.1, currentTime - lastTickTime); // todo hmm, omaigadddd
-        lastTickTime = currentTime;
-
         checkMouseClick(mc, currentTime);
 
         VRLocalPlayer vrPlayer = VisorAPI.client().getVRLocalPlayer();
         if (vrPlayer != null && VisorAPI.clientState().playMode().canPlayVR()) {
             PlayerPoseClient pose = vrPlayer.getPoseData(PlayerPoseType.RENDER);
 
-            Vec3 currentMain = toVec3(pose.getMainHand().getPosition());
-            if (lastMainHandPos != null) {
-                wasMainOnNoteBlock = checkDrumHit(mc, currentMain, lastMainHandPos, HandType.MAIN, InteractionHand.MAIN_HAND, wasMainOnNoteBlock, lastMainHitTime, currentTime);
-                if (wasMainOnNoteBlock && currentTime - lastMainHitTime > COOLDOWN_SECONDS) {
-                    lastMainHitTime = currentTime;
-                }
+            VRPose mainPose = pose.getMainHand();
+            Vec3 currentMainTip = getStickTip(mainPose);
+            if (lastMainTipPos != null) {
+                wasMainInside = processHandHit(mc, currentMainTip, lastMainTipPos, HandType.MAIN, InteractionHand.MAIN_HAND, wasMainInside, currentTime, true);
             }
-            lastMainHandPos = currentMain;
+            lastMainTipPos = currentMainTip;
 
-            Vec3 currentOff = toVec3(pose.getOffhand().getPosition());
-            if (lastOffHandPos != null) {
-                wasOffOnNoteBlock = checkDrumHit(mc, currentOff, lastOffHandPos, HandType.OFFHAND, InteractionHand.OFF_HAND, wasOffOnNoteBlock, lastOffHitTime, currentTime);
-                if (wasOffOnNoteBlock && currentTime - lastOffHitTime > COOLDOWN_SECONDS) {
-                    lastOffHitTime = currentTime;
-                }
+            VRPose offPose = pose.getOffhand();
+            Vec3 currentOffTip = getStickTip(offPose);
+            if (lastOffTipPos != null) {
+                wasOffInside = processHandHit(mc, currentOffTip, lastOffTipPos, HandType.OFFHAND, InteractionHand.OFF_HAND, wasOffInside, currentTime, false);
             }
-            lastOffHandPos = currentOff;
+            lastOffTipPos = currentOffTip;
         }
+    }
+
+    private Vec3 getStickTip(VRPose handPose) {
+        Vector3f offset = new Vector3f(0, 0, -0.38f);
+
+        Vector3f tipJoml = handPose.getCustomVector(offset).add(handPose.getPosition());
+
+        return toVec3(tipJoml);
+    }
+
+    private boolean processHandHit(Minecraft mc, Vec3 currentTip, Vec3 lastTip, HandType handType, InteractionHand mcHand, boolean wasInside, double currentTime, boolean isMainHand) {
+        BlockPos pos = BlockPos.containing(currentTip.x, currentTip.y, currentTip.z);
+        boolean isNowInside = mc.level.getBlockState(pos).is(Blocks.NOTE_BLOCK);
+        boolean hasStick = mc.player.getItemInHand(mcHand).is(Items.STICK);
+
+        if (hasStick && isNowInside && !wasInside) {
+            Vec3 motion = currentTip.subtract(lastTip);
+            double speed = motion.length();
+            double lastHitTime = isMainHand ? lastMainHitTime : lastOffHitTime;
+
+            if (speed > MIN_SPEED_FOR_HIT && (currentTime - lastHitTime > COOLDOWN_SECONDS)) {
+                playDrumSound(mc, pos, speed, handType);
+                spawnDrumParticles(mc, currentTip);
+
+                if (isMainHand) lastMainHitTime = currentTime;
+                else lastOffHitTime = currentTime;
+            }
+        }
+        return isNowInside;
     }
 
     // todo если всё гуд феникс, то уберу проверку на мышку
     private void checkMouseClick(Minecraft mc, double currentTime) {
-        boolean hasStickInMainHand = mc.player.getItemInHand(InteractionHand.MAIN_HAND).is(Items.STICK);
-        boolean hasStickInOffHand = mc.player.getItemInHand(InteractionHand.OFF_HAND).is(Items.STICK);
-        boolean hasStick = hasStickInMainHand || hasStickInOffHand;
-
-        if (!hasStick) {
-            long window = mc.getWindow().getWindow();
-            wasMouseLmbPressed = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
-            wasMouseRmbPressed = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
-            return;
-        }
+        boolean hasStick = mc.player.getMainHandItem().is(Items.STICK) || mc.player.getOffhandItem().is(Items.STICK);
 
         long window = mc.getWindow().getWindow();
         boolean lmbPressed = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
@@ -100,12 +113,14 @@ public class DrumKitHandler {
         wasMouseLmbPressed = lmbPressed;
         wasMouseRmbPressed = rmbPressed;
 
+        if (!hasStick) return;
+
         if ((lmbJustPressed || rmbJustPressed) && (currentTime - lastMouseHitTime > COOLDOWN_SECONDS)) {
             HitResult hit = mc.hitResult;
             if (hit instanceof BlockHitResult blockHit) {
                 BlockPos pos = blockHit.getBlockPos();
-                if (mc.level.getBlockState(pos).getBlock() == Blocks.NOTE_BLOCK) {
-                    playDrumSound(mc, pos, 1.0, null);
+                if (mc.level.getBlockState(pos).is(Blocks.NOTE_BLOCK)) {
+                    playDrumSound(mc, pos, 0.5, null);
                     spawnDrumParticles(mc, hit.getLocation());
                     lastMouseHitTime = currentTime;
                 }
@@ -113,32 +128,12 @@ public class DrumKitHandler {
         }
     }
 
-    private boolean checkDrumHit(Minecraft mc, Vec3 current, Vec3 last, HandType vrHand, InteractionHand mcHand, boolean wasOnNoteBlock, double lastHitTime, double currentTime) { // todo
-        BlockPos pos = BlockPos.containing(current.x, current.y, current.z);
-        boolean isOnNoteBlock = mc.level.getBlockState(pos).getBlock() == Blocks.NOTE_BLOCK;
-
-        boolean hasStickInHand = mc.player.getItemInHand(mcHand).is(Items.STICK);
-
-        Vec3 movement = current.subtract(last);
-        double speed = movement.length();
-
-        if (hasStickInHand && isOnNoteBlock && speed > MIN_SPEED_FOR_HIT && (currentTime - lastHitTime > COOLDOWN_SECONDS)) {
-            playDrumSound(mc, pos, speed, vrHand);
-            spawnDrumParticles(mc, current);
-            return true;
-        }
-
-        return isOnNoteBlock;
-    }
-
     private void playDrumSound(Minecraft mc, BlockPos pos, double speed, HandType handType) {
-        float volume = (float) Math.min(speed * 2.0, 1.0);
-        float pitch = 0.5f + (float)(Math.random() * 0.3);
+        float volume = (float) Math.min(Math.max(speed * 10.0, 0.5), 1.5);
+        float pitch = 0.45f + (float)(Math.random() * 0.2);
 
         mc.level.playLocalSound(
-            pos.getX() + 0.5,
-            pos.getY() + 0.5,
-            pos.getZ() + 0.5,
+            pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
             SoundEvents.NOTE_BLOCK_BASS.value(),
             SoundSource.BLOCKS,
             volume,
@@ -147,43 +142,19 @@ public class DrumKitHandler {
         );
 
         if (handType != null) {
-            float amplitude = (float) Math.min(speed * 3.0, 0.9);
-            float frequency = 150.0f;
-            float duration = 0.08f;
-
-            VisorAPI.client().getInputManager().triggerHapticPulse(
-                handType,
-                frequency,
-                amplitude,
-                duration
-            );
+            float amplitude = (float) Math.min(speed * 12.0, 1.0);
+            VisorAPI.client().getInputManager().triggerHapticPulse(handType, 160f, amplitude, 0.06f);
         }
     }
 
     private void spawnDrumParticles(Minecraft mc, Vec3 pos) {
-        int particleCount = 8;
-
-        for (int i = 0; i < particleCount; i++) {
+        for (int i = 0; i < 8; i++) {
             mc.level.addParticle(
                 ParticleTypes.NOTE,
-                pos.x + (Math.random() - 0.5) * 0.6,
-                pos.y + 0.5 + Math.random() * 0.3,
-                pos.z + (Math.random() - 0.5) * 0.6,
-                (Math.random() - 0.5) * 0.05,
-                Math.random() * 0.1,
-                (Math.random() - 0.5) * 0.05
-            );
-        }
-
-        if (Math.random() > 0.5) {
-            mc.level.addParticle(
-                ParticleTypes.HAPPY_VILLAGER,
-                pos.x + (Math.random() - 0.5) * 0.4,
-                pos.y + 0.6,
-                pos.z + (Math.random() - 0.5) * 0.4,
-                0,
-                0.05,
-                0
+                pos.x + (Math.random() - 0.5) * 0.2,
+                pos.y + (Math.random() - 0.5) * 0.2,
+                pos.z + (Math.random() - 0.5) * 0.2,
+                0, 0.1, 0
             );
         }
     }
