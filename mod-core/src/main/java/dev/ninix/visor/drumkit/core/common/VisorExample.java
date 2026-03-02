@@ -1,4 +1,4 @@
-package your.mod.example.core.common;
+package dev.ninix.visor.drumkit.core.common;
 
 public class VisorExample {
     public static final String MOD_ID = "visor_example";

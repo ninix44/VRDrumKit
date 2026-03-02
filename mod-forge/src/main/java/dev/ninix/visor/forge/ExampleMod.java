@@ -1,14 +1,15 @@
-package your.mod.example.fabric;
+package dev.ninix.visor.forge;
 
 import org.vmstudio.visor.api.ModLoader;
 import org.vmstudio.visor.api.VisorAPI;
-import your.mod.example.core.client.ExampleAddonClient;
-import your.mod.example.core.server.ExampleAddonServer;
-import net.fabricmc.api.ModInitializer;
+import dev.ninix.visor.drumkit.core.client.ExampleAddonClient;
+import dev.ninix.visor.drumkit.core.common.VisorExample;
+import dev.ninix.visor.drumkit.core.server.ExampleAddonServer;
+import net.minecraftforge.fml.common.Mod;
 
-public class ExampleMod implements ModInitializer {
-    @Override
-    public void onInitialize() {
+@Mod(VisorExample.MOD_ID)
+public class ExampleMod {
+    public ExampleMod(){
         if(ModLoader.get().isDedicatedServer()){
             VisorAPI.registerAddon(
                     new ExampleAddonServer()

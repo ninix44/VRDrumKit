@@ -1,9 +1,9 @@
-package your.mod.example.core.client;
+package dev.ninix.visor.drumkit.core.client;
 
 import org.vmstudio.visor.api.VisorAPI;
 import org.vmstudio.visor.api.common.addon.VisorAddon;
-import your.mod.example.core.client.overlays.VROverlayExample;
-import your.mod.example.core.common.VisorExample;
+import dev.ninix.visor.drumkit.core.client.overlays.VROverlayExample;
+import dev.ninix.visor.drumkit.core.common.VisorExample;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -1,7 +1,7 @@
-package your.mod.example.core.mixin;
+package dev.ninix.visor.drumkit.core.mixin;
 
 import org.vmstudio.visor.api.ModLoader;
-import your.mod.example.core.common.VisorExample;
+import dev.ninix.visor.drumkit.core.common.VisorExample;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
