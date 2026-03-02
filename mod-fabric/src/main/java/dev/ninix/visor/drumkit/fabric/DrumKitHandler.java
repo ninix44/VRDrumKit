@@ -48,7 +48,7 @@ public class DrumKitHandler {
         if (mc.player == null || mc.level == null || mc.isPaused()) return;
 
         double currentTime = System.currentTimeMillis() / 1000.0;
-        double deltaTime = Math.min(0.1, currentTime - lastTickTime); // todo
+        double deltaTime = Math.min(0.1, currentTime - lastTickTime); // todo hmm, omaigadddd
         lastTickTime = currentTime;
 
         checkMouseClick(mc, currentTime);
@@ -77,6 +77,7 @@ public class DrumKitHandler {
         }
     }
 
+    // todo если всё гуд феникс, то уберу проверку на мышку
     private void checkMouseClick(Minecraft mc, double currentTime) {
         boolean hasStickInMainHand = mc.player.getItemInHand(InteractionHand.MAIN_HAND).is(Items.STICK);
         boolean hasStickInOffHand = mc.player.getItemInHand(InteractionHand.OFF_HAND).is(Items.STICK);
