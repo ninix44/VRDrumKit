@@ -52,7 +52,7 @@ public class DrumKitHandler {
 
         VRLocalPlayer vrPlayer = VisorAPI.client().getVRLocalPlayer();
         if (vrPlayer != null && VisorAPI.clientState().playMode().canPlayVR()) {
-            PlayerPoseClient pose = vrPlayer.getPoseData(PlayerPoseType.RENDER);
+            PlayerPoseClient pose = vrPlayer.getPoseData(PlayerPoseType.TICK);
 
             VRPose mainPose = pose.getMainHand();
             Vec3 currentMainTip = getStickTip(mainPose);
@@ -71,7 +71,7 @@ public class DrumKitHandler {
     }
 
     private Vec3 getStickTip(VRPose handPose) {
-        Vector3f offset = new Vector3f(0, 0, -0.38f);
+        Vector3f offset = new Vector3f(0, 0.43f, -0.25f);
 
         Vector3f tipJoml = handPose.getCustomVector(offset).add(handPose.getPosition());
 
@@ -99,7 +99,6 @@ public class DrumKitHandler {
         return isNowInside;
     }
 
-    // todo если всё гуд феникс, то уберу проверку на мышку
     private void checkMouseClick(Minecraft mc, double currentTime) {
         boolean hasStick = mc.player.getMainHandItem().is(Items.STICK) || mc.player.getOffhandItem().is(Items.STICK);
 
