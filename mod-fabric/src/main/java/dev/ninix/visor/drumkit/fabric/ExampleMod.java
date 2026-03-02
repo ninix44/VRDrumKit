@@ -9,6 +9,8 @@ import net.fabricmc.api.ModInitializer;
 public class ExampleMod implements ModInitializer {
     @Override
     public void onInitialize() {
+        new DrumKitHandler();
+
         if(ModLoader.get().isDedicatedServer()){
             VisorAPI.registerAddon(
                     new ExampleAddonServer()

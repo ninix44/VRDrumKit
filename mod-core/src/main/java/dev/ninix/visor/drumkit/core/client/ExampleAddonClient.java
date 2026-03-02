@@ -27,7 +27,7 @@ public class ExampleAddonClient implements VisorAddon {
 
     @Override
     public @Nullable String getAddonPackagePath() {
-        return "your.mod.example.core.client";
+        return "dev.ninix.visor.drumkit.core.client";
     }
 
     @Override
