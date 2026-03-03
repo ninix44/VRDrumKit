@@ -1,13 +1,5 @@
-package dev.ninix.visor.drumkit.fabric;
+package dev.ninix.visor.drumkit.core.handler;
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import org.lwjgl.glfw.GLFW;
-import org.vmstudio.visor.api.VisorAPI;
-import org.vmstudio.visor.api.client.player.VRLocalPlayer;
-import org.vmstudio.visor.api.client.player.pose.PlayerPoseClient;
-import org.vmstudio.visor.api.client.player.pose.PlayerPoseType;
-import org.vmstudio.visor.api.common.HandType;
-import org.vmstudio.visor.api.common.player.VRPose;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -21,6 +13,13 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
+import org.lwjgl.glfw.GLFW;
+import org.vmstudio.visor.api.VisorAPI;
+import org.vmstudio.visor.api.client.player.VRLocalPlayer;
+import org.vmstudio.visor.api.client.player.pose.PlayerPoseClient;
+import org.vmstudio.visor.api.client.player.pose.PlayerPoseType;
+import org.vmstudio.visor.api.common.HandType;
+import org.vmstudio.visor.api.common.player.VRPose;
 
 public class DrumKitHandler {
 
@@ -41,10 +40,9 @@ public class DrumKitHandler {
     private boolean wasMouseRmbPressed = false;
 
     public DrumKitHandler() {
-        ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
-    private void onTick(Minecraft mc) {
+    public void onTick(Minecraft mc) {
         if (mc.player == null || mc.level == null || mc.isPaused()) return;
 
         double currentTime = System.currentTimeMillis() / 1000.0;
