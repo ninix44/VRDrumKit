@@ -12,7 +12,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "dev.ninix.visor.drumkit.fabric.DrumKitFabric"
+      "org.vmstudio.drumkit.fabric.DrumKitFabric"
     ]
   },
   "mixins": [
